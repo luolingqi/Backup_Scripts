@@ -1,0 +1,119 @@
+---
+title: "evaluate_overlapping_top_mutations"
+author: "Lingqi Luo"
+date: "8/5/2019"
+output: html_document
+---
+
+```{r}
+# read in the top10 mutations data
+path_top10 <- file.path("/Users/luol2/Dropbox/MSK/Diaz_Project/analysis","top10_mutations_w_highest_frequency_cases_DNA_and_Expression.txt")
+path_top23 <- file.path("/Users/luol2/Dropbox/MSK/Diaz_Project/analysis","top23_mutations_w_highest_freq_cases_DNA_only.txt")
+df_top10 <- read.csv2(path_top23, header = FALSE, sep = "\t")
+row.names(df_top10) <- df_top10[,1]
+df_top10 <- df_top10[,c(2:dim(df_top10)[2])]
+# Evaluate the degree of cluster overlapping
+jaccard.sim <- function(c1, c2) {
+  # remove '*'
+  c1 <- c1[c1 != "*"]
+  c2 <- c2[c2 != "*"]
+  
+  c3 <- intersect(c1,c2)
+  index <- length(c3)/(length(c1) + length(c2) - length(c3))
+  index
+}
+
+# Evaluate cluster overlapping of the top 8 clusters
+sim_matrix <- matrix(rep(1,100),nrow = dim(df_top10)[1], ncol = dim(df_top10)[1])
+
+for(i in 1:dim(df_top10)[1]) {
+  for(j in 1:dim(df_top10)[1]) {
+    if (j>i) {
+      sim=jaccard.sim(df_top10[i,], df_top10[j,])
+      result <- paste(paste(i,j, sep = "_vs_"), sim, sep = " ")
+      print(result)
+      sim_matrix[i,j] <- round(sim, digits = 2)
+      sim_matrix[j,i] <- round(sim, digits = 2)
+    }
+  }
+}
+sim_matrix
+
+# Generate correlation plot for the cluster similarity metrics
+library(corrplot)
+corrplot(sim_matrix, addCoef.col = "black", type="upper")
+
+# Generate correlation heatmap 
+
+reorder_cormat <- function(cormat){
+# Use correlation between variables as distance
+dd <- as.dist((1-cormat)/2)
+hc <- hclust(dd)
+cormat <-cormat[hc$order, hc$order]
+}
+
+  # Get upper triangle of the correlation matrix
+  get_upper_tri <- function(cormat){
+    cormat[lower.tri(cormat)]<- NA
+    return(cormat)
+  }
+  
+  
+# Reorder the correlation matrix
+sim_matrix <- reorder_cormat(sim_matrix)
+upper_tri <- get_upper_tri(sim_matrix)
+library(reshape2)
+library(ggplot2)
+# Melt the correlation matrix
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+# Create a ggheatmap
+ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0.1, limit = c(0,1), space = "Lab", 
+    name="Jaccard\nSimilarity") +
+  scale_x_discrete(limits = row.names(df_top10)) + 
+  scale_y_discrete(limits = row.names(df_top10), position = "right") + 
+  #theme_minimal()+ # minimal theme
+ theme(axis.text.x = element_text(angle = 90, vjust = 1, 
+    size = 6, hjust = 1))+
+  theme(axis.text.y.right = element_text(angle = 0, vjust = 1, 
+    size = 6, hjust = 0))+
+ #coord_fixed() +
+  geom_text(aes(Var2, Var1, label = value), color = "black", size = 2) +
+theme(
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  panel.grid.major = element_blank(),
+  panel.border = element_blank(),
+  panel.background = element_blank(),
+  axis.ticks = element_blank(),
+  legend.justification = c(1, 0),
+  legend.position = c(0.6, 0.7),
+  legend.direction = "horizontal")+
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                title.position = "top", title.hjust = 0.5))
+# Print the heatmap
+print(ggheatmap)
+  
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

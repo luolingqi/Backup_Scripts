@@ -1,0 +1,128 @@
+---
+title: "plot_normalized_expression_wt_&_mut"
+author: "Lingqi Luo"
+date: "5/24/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+library(ggplot2)
+library(reshape2)
+path<-"/Users/luol2/Dropbox/MSK/Diaz_Project/analysis/"
+df_norm_wt <- read.csv(paste0(path,"summary_norm_wt.txt"), sep = "\t", header = FALSE)
+df_norm_mut <- read.csv(paste0(path,"summary_norm_mut.txt"), sep = "\t", header = FALSE)
+
+row.names(df_norm_mut) <-  paste(df_norm_mut$V1,df_norm_mut$V2,sep = "_")
+df_norm_mut <- df_norm_mut[,3:ncol(df_norm_mut)]
+df_norm_mut$loci <- row.names(df_norm_mut)
+mut_mm <- melt(df_norm_mut, id="loci")
+mut_mm <- cbind(mut_mm, type=rep("MUT", nrow(mut_mm)))
+
+row.names(df_norm_wt) <-  paste(df_norm_wt$V1,df_norm_wt$V2,sep = "_")
+df_norm_wt <- df_norm_wt[,3:ncol(df_norm_wt)]
+df_norm_wt$loci <- row.names(df_norm_wt)
+wt_mm <- melt(df_norm_wt, id="loci")
+wt_mm <- cbind(wt_mm, type=rep("WT", nrow(wt_mm)))
+
+
+# Plot the boxplot
+combined_mm <- rbind(wt_mm,mut_mm)
+
+#p <- ggplot(combined_mm[combined_mm$loci!="chr1_6197724",], aes(x=loci, y=value, fill=type)) + geom_boxplot(outlier.size=0.2) + theme(axis.text.x=element_text(angle = -90, hjust = 0, size = 3))
+#p
+p_mut <- ggplot(mut_mm[mut_mm$loci!="chr1_6197724",], aes(x=loci, y=value)) + geom_boxplot(outlier.size=0.2) + theme(axis.text.x=element_text(angle = -90, hjust = 0, size = 3))
+p_mut
+
+p_wt <- ggplot(wt_mm[wt_mm$loci!="chr1_6197724",], aes(x=loci, y=value)) + geom_boxplot(outlier.size=0.2) + theme(axis.text.x=element_text(angle = -90, hjust = 0, size = 3))
+p_wt
+
+## get the expression summary for the data
+key_list=c()
+for(key in mut_mm$loci){
+  if(!(key %in% key_list)) {
+    key_list <- c(key_list,key)
+    write(key, file = "mut_summary.txt", append = TRUE)
+    write(summary(mut_mm[mut_mm$loci==key,]$value), file = "mut_summary.txt", append = TRUE)
+  }
+}
+
+key_list=c()
+for(key in wt_mm$loci){
+  if(!(key %in% key_list)) {
+    key_list <- c(key_list,key)
+    write(key, file = "wt_summary.txt", append = TRUE)
+    write(summary(wt_mm[wt_mm$loci==key,]$value), file = "wt_summary.txt", append = TRUE)
+  }
+}
+
+# boxplot of the selected mutation set
+# SETD1B H8Tfs*27: chr12_121804751
+# RNF43 G659Vfs*41  chr17_58357799
+# DOCK3 P1852Qfs*45 chr3_51380172
+# RPL22 K15Rfs*5  chr1_6197724
+# XYLT2 G529Afs*78  chr17_50356605
+# ACVR2A K437Rfs*5  chr2_147926116
+# SLC3A2 K301Rfs*31 chr11_62882056
+# ZBTB20 P692Lfs*43 chr3_114339155
+
+selected <- c('chr12_121804751','chr17_58357799', 'chr3_51380172', 'chr1_6197724', 'chr17_50356605', 'chr2_147926116', 'chr11_62882056', 'chr3_114339155')
+
+log2_mut_mm_selected <- mut_mm[mut_mm$loci %in% selected,]
+log2_mut_mm_selected$value <- log2(log2_mut_mm_selected$value+1)
+
+p_mut_selected <- ggplot(log2_mut_mm_selected, aes(x=loci, y=value)) +
+                  geom_boxplot(outlier.size=0.2) + 
+                  theme(axis.text.x=element_text(angle = -45, hjust = 0, size = 7)) +
+                  xlab("Mutations") + ylab("Log2 Normal Value") +
+                  scale_x_discrete(labels=c('chr12_121804751' = 'SETD1B H8Tfs*27', 
+                                            'chr17_58357799' = 'RNF43 G659Vfs*41', 
+                                            'chr3_51380172' = 'DOCK3 P1852Qfs*45', 
+                                            'chr1_6197724' = 'RPL22 K15Rfs*5', 
+                                            'chr17_50356605' = 'XYLT2 G529Afs*78', 
+                                            'chr2_147926116' = 'ACVR2A K437Rfs*5', 
+                                            'chr11_62882056' = 'SLC3A2 K301Rfs*31', 
+                                            'chr3_114339155' = 'ZBTB20 P692Lfs*43'))
+p_mut_selected
+
+```
+
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+path<-"/Users/luol2/Dropbox/MSK/Diaz_Project/analysis/"
+df <- read.csv2(paste0(path,"grand_highmut_sites.AD.MUT.sorted.txt"), header = FALSE, sep = "\t")
+colnames(df) <- c("WT","MUT")
+hist(df$MUT, breaks = 1:122)
+
+df_mut_gt_4 <- df[df$MUT>4,]
+hist(df_mut_gt_4$MUT, breaks = 1:122)
+
+### WT AD values distribution
+path <- "/Users/luol2/Dropbox/MSK/Diaz_Project/analysis/"
+df_wt <- read.csv2(paste0(path,"grand_highmut_sites.AD.WT.sorted.txt"), header = FALSE, sep = "\t")
+colnames(df_wt) <- c("WT")
+hist(log2(df_wt$WT+1), breaks = 0:14)
+
+df_wt_gt_4 <- as.data.frame(df_wt[df_wt$WT>4,])
+colnames(df_wt_gt_4) <- c("WT")
+hist(log2(df_wt_gt_4$WT+1), breaks = 0:14)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

@@ -1,0 +1,78 @@
+---
+title: "WT_MUT_expression_distribution"
+author: "Lingqi Luo"
+date: "8/7/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+path <- "/Users/luol2/Dropbox/MSK/Diaz_Project/analysis"
+wt_exp <- file.path(path,"t_summary_norm_wt_1_w_sampleid_class.txt")
+mut_exp <- file.path(path,"t_summary_norm_mut_min_AD_4_1_w_header_class.txt")
+
+df_wt <- read.csv2(file = wt_exp, sep = "\t", stringsAsFactors = FALSE)
+row.names(df_wt) <- df_wt$Sample
+#as.factor(df_wt$Type)
+
+df_mut <- read.csv2(file = mut_exp, sep = "\t", stringsAsFactors = FALSE)
+row.names(df_mut) <- df_mut$Sample
+#as.factor(df_mut$Type)
+
+
+#####################
+#MUT
+#####################
+aggdata_mut <- data.frame(Type=c("MSI","MSS","Total"))
+for(i in 3:68) {
+  #df_mut_gt_0 <- df_mut[df_mut[,i]>0,]
+  #m <- 0
+  #if(nrow(df_mut_gt_0) > 0) {     # for mutations that have some expression
+    m <- mean(as.numeric(df_mut[,i]))
+    aggdata_i <- aggregate(as.numeric(df_mut[,i]), list(Type = df_mut$Type), FUN = mean)
+    #colnames(aggdata_i) <- c("Type",colnames(df_mut)[i])
+    #aggdata_mut$colnames(df_mut)[i]=aggdata[,2]
+    matrix <- as.matrix(aggdata_mut)
+    aggdata_mut <- as.data.frame(cbind(matrix,c(aggdata_i[,2],m)))
+}  
+colnames(aggdata_mut) <- c("Type",colnames(df_mut)[3:68]) 
+
+write.table(aggdata_mut, file = "MUT_exp_aggregate_mean.txt")
+
+#####################
+#WT
+#####################
+aggdata_wt <- data.frame(Type=c("MSI","MSS","Total"))
+for(i in 3:68) {
+  #df_wt_gt_0 <- df_wt[df_wt[,i]>0,]
+  #m <- 0
+  #if(nrow(df_wt_gt_0) > 0) {     # for wtations that have some expression
+    m <- mean(as.numeric(df_wt[,i]))
+    aggdata_i <- aggregate(as.numeric(df_wt[,i]), list(Type = df_wt$Type), FUN = mean)
+    #colnames(aggdata) <- c("Type",colnames(df_wt)[i])
+    #aggdata_wt$colnames(df_wt)[i]=aggdata[,2]
+    matrix <- as.matrix(aggdata_wt)
+    aggdata_wt <- as.data.frame(cbind(matrix,c(aggdata_i[,2],m)))
+    
+  }
+  
+colnames(aggdata_wt) <- c("Type",colnames(df_wt)[3:68]) 
+
+write.table(aggdata_wt, file = "WT_exp_aggregate_mean.txt")
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
